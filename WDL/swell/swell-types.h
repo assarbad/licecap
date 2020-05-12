@@ -642,6 +642,9 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define MB_ICONERROR 0
 #define MB_ICONSTOP 0
 #define MB_ICONINFORMATION 0
+#define MB_ICONQUESTION 0
+#define MB_TOPMOST 0
+#define MB_ICONEXCLAMATION 0
 
 #define IDOK                1
 #define IDCANCEL            2
@@ -666,20 +669,21 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define DWL_DLGPROC         (-8)
 
 #define SWELL_NOT_WS_VISIBLE ((int)0x80000000)
+// oops these don't match real windows
 #define WS_CHILDWINDOW (WS_CHILD)
-#define WS_CHILD      0x40000000L
-#define WS_DISABLED   0x08000000L
-#define WS_CAPTION    0x00C00000L
-#define WS_VSCROLL    0x00200000L
-#define WS_HSCROLL    0x00100000L
-#define WS_SYSMENU    0x00080000L
-#define WS_THICKFRAME 0x00040000L
-#define WS_GROUP      0x00020000L
-#define WS_TABSTOP    0x00010000L
+#define WS_CHILD        0x40000000L
+#define WS_DISABLED     0x08000000L
+#define WS_CLIPSIBLINGS 0x04000000L
+#define WS_VISIBLE      0x02000000L // only used by GetWindowLong(GWL_STYLE) -- not settable
+#define WS_CAPTION      0x00C00000L
+#define WS_VSCROLL      0x00200000L
+#define WS_HSCROLL      0x00100000L
+#define WS_SYSMENU      0x00080000L
+#define WS_THICKFRAME   0x00040000L
+#define WS_GROUP        0x00020000L
+#define WS_TABSTOP      0x00010000L
 
 #define WS_BORDER 0 // ignored for now
-#define WS_VISIBLE 0
-
 
 #define WM_CTLCOLORMSGBOX 0x0132
 #define WM_CTLCOLOREDIT 0x0133
@@ -718,6 +722,7 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define LB_GETSELCOUNT          0x0190
 #define LB_GETITEMDATA          0x0199
 #define LB_SETITEMDATA          0x019A
+#define LB_FINDSTRINGEXACT      0x01A2
 
 #define TBM_GETPOS              (WM_USER)
 #define TBM_SETTIC              (WM_USER+4)
@@ -906,6 +911,7 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define WM_MOVE                         0x0003
 #define WM_SIZE                         0x0005
 #define WM_ACTIVATE                     0x0006
+#define WM_SETREDRAW                    0x000B // implemented on macOS NSTableViews, maybe elsewhere?
 #define WM_SETTEXT			0x000C // not implemented on OSX, used internally on Linux
 #define WM_PAINT                        0x000F
 #define WM_CLOSE                        0x0010
@@ -919,8 +925,8 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define WM_SETFONT                      0x0030
 #define WM_GETFONT                      0x0031
 #define WM_GETOBJECT 			0x003D // implemented differently than win32 -- see virtwnd/virtwnd-nsaccessibility.mm
+#define WM_COPYDATA                     0x004A
 #define WM_NOTIFY                       0x004E
-
 #define WM_CONTEXTMENU                  0x007B
 #define WM_STYLECHANGED                 0x007D
 #define WM_DISPLAYCHANGE                0x007E
@@ -975,7 +981,6 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define WM_DROPFILES                    0x0233
 #define WM_USER                         0x0400
 
-
 #define HTCAPTION 2
 #define HTBOTTOMRIGHT 17
 
@@ -998,6 +1003,7 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define EM_GETSEL               0xF0B0
 #define EM_SETSEL               0xF0B1
 #define EM_SCROLL               0xF0B5
+#define EM_REPLACESEL           0xF0C2
 #define EM_SETPASSWORDCHAR      0xF0CC
 
 #define SB_HORZ             0
@@ -1186,10 +1192,10 @@ __attribute__ ((visibility ("default"))) BOOL WINAPI DllMain(HINSTANCE hInstDLL,
 #define VK_NUMLOCK        0x90
 #define VK_SCROLL         0x91
 
-#define MK_LBUTTON        0x01
+// these should probably not be used (wParam is not set in WM_LBUTTONDOWN/WM_MOUSEMOVE etc)
+#define MK_LBUTTON        0x01 
 #define MK_RBUTTON        0x02
 #define MK_MBUTTON        0x10
-
 
 #define IDC_SIZENESW MAKEINTRESOURCE(32643)
 #define IDC_SIZENWSE MAKEINTRESOURCE(32642)
@@ -1368,6 +1374,13 @@ typedef struct _ICONINFO
   HBITMAP hbmMask;
   HBITMAP hbmColor;
 } ICONINFO, *PICONINFO;
+
+typedef struct _COPYDATASTRUCT
+{
+  ULONG_PTR dwData;
+  DWORD     cbData;
+  PVOID     lpData;
+} COPYDATASTRUCT, *PCOPYDATASTRUCT;
 
 
 #endif //_WDL_SWELL_H_TYPES_DEFINED_

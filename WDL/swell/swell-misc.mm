@@ -23,6 +23,7 @@
 //#import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 #include "swell.h"
+#define SWELL_IMPLEMENT_GETOSXVERSION
 #include "swell-internal.h"
 
 #include "../mutex.h"
@@ -119,13 +120,13 @@ void SWELL_ReleaseNSTask(void *p)
 DWORD SWELL_WaitForNSTask(void *p, DWORD msTO)
 {
   NSTask *a =(NSTask*)p;
-  DWORD t = msTO ? GetTickCount()+msTO : 0;
+  const DWORD t = GetTickCount();
   do 
   {
     if (![a isRunning]) return WAIT_OBJECT_0;
-    if (t) Sleep(1);
+    if (msTO) Sleep(1);
   }
-  while (GetTickCount()<t);
+  while (msTO && (GetTickCount()-t) < msTO);
 
   return [a isRunning] ? WAIT_TIMEOUT : WAIT_OBJECT_0;
 }
@@ -336,8 +337,10 @@ typedef struct TimerInfoRec
 } TimerInfoRec;
 static TimerInfoRec *m_timer_list;
 static WDL_Mutex m_timermutex;
+#ifndef SWELL_NO_POSTMESSAGE
 static pthread_t m_pmq_mainthread;
 static void SWELL_pmq_settimer(HWND h, UINT_PTR timerid, UINT rate, TIMERPROC tProc);
+#endif
 
 UINT_PTR SetTimer(HWND hwnd, UINT_PTR timerid, UINT rate, TIMERPROC tProc)
 {
@@ -345,11 +348,13 @@ UINT_PTR SetTimer(HWND hwnd, UINT_PTR timerid, UINT rate, TIMERPROC tProc)
   
   if (hwnd && !timerid) return 0;
   
+#ifndef SWELL_NO_POSTMESSAGE
   if (timerid != ~(UINT_PTR)0 && m_pmq_mainthread && pthread_self()!=m_pmq_mainthread)
   {   
     SWELL_pmq_settimer(hwnd,timerid,(rate==(UINT)-1)?((UINT)-2):rate,tProc);
     return timerid;
   }
+#endif
   
   
   if (hwnd && ![(id)hwnd respondsToSelector:@selector(SWELL_Timer:)])
@@ -433,11 +438,13 @@ BOOL KillTimer(HWND hwnd, UINT_PTR timerid)
   if (!hwnd && !timerid) return FALSE;
   
   WDL_MutexLock lock(&m_timermutex);
+#ifndef SWELL_NO_POSTMESSAGE
   if (timerid != ~(UINT_PTR)0 && m_pmq_mainthread && pthread_self()!=m_pmq_mainthread)
   {
     SWELL_pmq_settimer(hwnd,timerid,~(UINT)0,NULL);
     return TRUE;
   }
+#endif
   BOOL rv=FALSE;
   
   // don't allow removing all global timers
@@ -474,6 +481,7 @@ BOOL KillTimer(HWND hwnd, UINT_PTR timerid)
 }
 
 
+#ifndef SWELL_NO_POSTMESSAGE
 
 ///////// PostMessage emulation
 
@@ -681,7 +689,7 @@ BOOL SWELL_Internal_PostMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
   
   return ret;
 }
-
+#endif
 
 static bool s_rightclickemulate=true;
 
@@ -769,26 +777,5 @@ void SWELL_DisableAppNap(int disable)
 }
 
 
-int SWELL_GetOSXVersion()
-{
-  static SInt32 v;
-  if (!v)
-  {
-    if (NSAppKitVersionNumber >= 1266.0) 
-    {
-      if (NSAppKitVersionNumber >= 1404.0)
-        v = 0x10b0;
-      else
-        v = 0x10a0; // 10.10+ Gestalt(gsv) return 0x109x, so we bump this to 0x10a0
-    }
-    else 
-    {
-      SInt32 a = 0x1040;
-      Gestalt(gestaltSystemVersion,&a);
-      v=a;
-    }
-  }
-  return v;
-}
 
 #endif

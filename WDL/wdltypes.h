@@ -139,8 +139,8 @@ typedef bool WDL_bool;
 #endif
 
 #if defined(__GNUC__) || defined(__INTEL_COMPILER)
-  #define WDL_likely(x) __builtin_expect(!!(x),1)
-  #define WDL_unlikely(x) __builtin_expect(!!(x),0)
+  #define WDL_likely(x) (__builtin_expect(!!(x),1))
+  #define WDL_unlikely(x) (__builtin_expect(!!(x),0))
 #else
   #define WDL_likely(x) (!!(x))
   #define WDL_unlikely(x) (!!(x))
@@ -156,5 +156,22 @@ typedef bool WDL_bool;
 #define WDL_NORMALLY(x) WDL_likely(x)
 #define WDL_NOT_NORMALLY(x) WDL_unlikely(x)
 #endif
+
+
+typedef unsigned int WDL_TICKTYPE;
+
+static WDL_bool WDL_STATICFUNC_UNUSED WDL_TICKS_IN_RANGE(WDL_TICKTYPE current,  WDL_TICKTYPE refstart, int len) // current >= refstart && current < refstart+len
+{
+  WDL_ASSERT(len > 0);
+  return (current - refstart) < (WDL_TICKTYPE)len;
+}
+
+static WDL_bool WDL_STATICFUNC_UNUSED WDL_TICKS_IN_RANGE_ENDING_AT(WDL_TICKTYPE current,  WDL_TICKTYPE refend, int len) // current >= refend-len && current < refend
+{
+  const WDL_TICKTYPE refstart = refend - len;
+  WDL_ASSERT(len > 0);
+  return (current - refstart) < (WDL_TICKTYPE)len;
+  //return ((refend-1) - current) < (WDL_TICKTYPE)len;
+}
 
 #endif
